@@ -34,6 +34,9 @@ on:
         description: "racecar correlation token, echoed into the run name"
         type: string
         default: ""
+permissions:
+  contents: read
+  id-token: write
 env:
   CHALK_ON: ${{ inputs.leg == 'instrumented' }}
   CARGO_TERM_COLOR: always
@@ -54,8 +57,15 @@ jobs:
       - name: Install Packages
         run: pacman -Syu meson git lld llvm clang pciutils gtk3 --noconfirm --needed
 
-      - uses: actions/checkout@v4
-
+      - uses: crashappsec/action-checkout@main
+        with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          lfs: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
       - name: Setup toolchain
         uses: actions-rs/toolchain@v1
         with:
